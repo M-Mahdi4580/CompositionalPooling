@@ -22,7 +22,7 @@ namespace CompositionalPooling
         /// </summary>
         /// <param name="handle">The handle to normalize.</param>
         /// <param name="source">The collection of normal handles.</param>
-        /// <returns>True if the handle is normalized, false otherwise.</returns>
+        /// <returns>True if the handle is normalized; false otherwise.</returns>
         public static bool TryNormalize(ref PoolHandle handle, ICollection<PoolHandle> source)
         {
             if (source.Contains(handle)) // If the source collection contains an equivalent handle
@@ -66,7 +66,7 @@ namespace CompositionalPooling
 		/// </summary>
 		/// <param name="source">The collection of handles.</param>
 		/// <param name="handle">The retrieved handle.</param>
-		/// <returns>True if the handle is retrieved, false otherwise.</returns>
+		/// <returns>True if the handle is retrieved; false otherwise.</returns>
 		/// <inheritdoc cref="PoolHandle(IReadOnlyList{Type})"/>
 		public static bool TryGetHandleFrom(IReadOnlyList<Type> composition, ICollection<PoolHandle> source, out PoolHandle handle)
         {

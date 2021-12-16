@@ -8,8 +8,6 @@ namespace CompositionalPooling
 {
     public static partial class PoolingSystem
     {
-        private const string PoolCreationFailureErrorFormat = "The component type {0} is not associated with any mapper delegate! Pool creation failed!"; // The error message format used for logging pool creation failures due to problematic component types.
-
         /// <summary>
         /// Handles to all of the existing pools.
         /// </summary>
@@ -31,7 +29,7 @@ namespace CompositionalPooling
         /// Determines whether the pool represented by the given handle exists.
         /// </summary>
         /// <param name="handle">The pool's handle.</param>
-        /// <returns>True if the pool exists, false otherwise.</returns>
+        /// <returns>True if the pool exists; false otherwise.</returns>
         public static bool Exists(in PoolHandle handle) => _PoolMap.ContainsKey(handle);
 
 
@@ -58,7 +56,7 @@ namespace CompositionalPooling
         /// </summary>
         /// <param name="instance">The object to check for.</param>
         /// <param name="handle">Handle to the object's pool.</param>
-        /// <returns>True if the object is a pool instance, false otherwise.</returns>
+        /// <returns>True if the object is a pool instance; false otherwise.</returns>
         /// <remarks>This method may not return correct results if the pool instances are altered externally.</remarks>
         public static bool Contains(Transform instance, out PoolHandle handle)
         {
@@ -99,17 +97,15 @@ namespace CompositionalPooling
 
                 if (unregisteredType is null) // If there are no problematic component types
                 {
-                    // Create the pool.
-                    handle = new PoolHandle(_CompositionBuffer.ToArray());
-                    pool = new PoolInfo(new Queue<Transform>(size.Capacity > 128 && size.Capacity > size.Count * 2 ? size.Count : Mathf.Max(size.Count, size.Capacity)), size.Capacity);
+                    handle = new PoolHandle(_CompositionBuffer.ToArray()); // Create a persistent handle.
+                    pool = new PoolInfo(new Queue<Transform>(size.Capacity > 128 && size.Capacity > size.Count * 2 ? size.Count : Mathf.Max(size.Count, size.Capacity)), size.Capacity); // Create the pool. 
                     poolStateChanged = true;
 
                     _PoolMap.Add(handle, pool); // Register the pool.
                 }
                 else
                 {
-                    Debug.LogError(string.Format(PoolCreationFailureErrorFormat, unregisteredType.FullName));
-                    return default;
+                    throw new InvalidOperationException($"The component type {unregisteredType.FullName} is not associated with any mapper delegates! The pool cannot be created and the initialization failed!");
                 }
             }
 
@@ -120,19 +116,18 @@ namespace CompositionalPooling
                     ReleaseImmediate(UnityEngine.Object.Instantiate(prototype)); // Release a clone of the prototype to get more instances.
                 }
 
-                while (pool.Instances.Count < size.Count) // As long as the initialization requires more instances
+                while (pool.Instances.Count < size.Count) // If the initialization requires more instances, replicate existing pool instances.
                 {
-                    Transform instance = UnityEngine.Object.Instantiate(pool.Instances.Peek()); // Replicate an existing pool instance.
-                    pool.Instances.Enqueue(instance); // Add the instance to the pool.
-
 #if UNITY_EDITOR && DEBUG
-                    instance.parent = _DelayedReleaser.transform; // Move the instance under the common root.
+                    pool.Instances.Enqueue(UnityEngine.Object.Instantiate(pool.Instances.Peek(), _DelayedReleaser.transform, false));
+#else
+                    pool.Instances.Enqueue(UnityEngine.Object.Instantiate(pool.Instances.Peek()));
 #endif
                 }
 
-                while (pool.Instances.Count > size.Count) // As long as the initialization requires less instances
+                while (pool.Instances.Count > size.Count) // If the initialization requires less instances, destroy excess pool instances.
                 {
-                    UnityEngine.Object.DestroyImmediate(pool.Instances.Dequeue().gameObject); // Remove and destroy an existing pool instance.
+                    UnityEngine.Object.DestroyImmediate(pool.Instances.Dequeue().gameObject);
                 }
 
                 if (pool.Capacity != size.Capacity) // If the initialization requires a new pool capacity

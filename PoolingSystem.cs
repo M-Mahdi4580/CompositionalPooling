@@ -14,8 +14,8 @@ namespace CompositionalPooling
     {
         private static readonly Dictionary<PoolHandle, PoolInfo> _PoolMap = new Dictionary<PoolHandle, PoolInfo>(); // Associates each pool handle with its pool info.
 
-        private static readonly Stack<int> _HierarchyPathBuffer = new Stack<int>(8); // A buffer for holding hierarchy paths.
         private static readonly List<PostMapperUnit> _PostMapUnits = new List<PostMapperUnit>(16); // A buffer for holding post mapper units.
+        private static readonly Stack<int> _HierarchyPathBuffer = new Stack<int>(8); // A buffer for holding hierarchy paths.
 
         private static readonly List<Component> _ComponentBuffer1 = new List<Component>(8); // A buffer for holding components.
         private static readonly List<Component> _ComponentBuffer2 = new List<Component>(8); // A buffer for holding components.
@@ -38,7 +38,7 @@ namespace CompositionalPooling
         /// <summary>
         /// Invoked after an object is released.
         /// </summary>
-        public static event EventHandler<Transform> OnReleased;
+        public static event EventHandler OnReleased;
 
 
         /// <summary>
@@ -51,7 +51,7 @@ namespace CompositionalPooling
             if (!Contains(instance, out _)) // Abort if the object is pooled already.
             {
                 Pool(instance);
-                OnReleased?.Invoke(null, instance);
+                OnReleased?.Invoke(null, EventArgs.Empty);
             }
 
 
@@ -74,9 +74,8 @@ namespace CompositionalPooling
                     }
                     else
 					{
-                        Debug.LogError(string.Format(PoolCreationFailureErrorFormat, unregisteredType.FullName));
 						UnityEngine.Object.DestroyImmediate(instance.gameObject); // Destroy the object.
-                        return;
+                        return; // Abort.
                     }
                 }
 
@@ -94,8 +93,6 @@ namespace CompositionalPooling
 
                 if (pool.Instances.Count < pool.Capacity) // If not at the size limit
                 {
-                    pool.Instances.Enqueue(instance); // Add the object to the pool.
-
                     instance.gameObject.SetActive(false); // Deactivate the object to minimize its effect on gameplay.
                     instance.gameObject.hideFlags = PoolInstanceHideFlags; // Hide the object.
 
@@ -104,6 +101,8 @@ namespace CompositionalPooling
 #else
                     instance.parent = null; // Detach the object from its parent.
 #endif
+
+                    pool.Instances.Enqueue(instance); // Add the object to the pool.
                 }
                 else // If at the size limit
                 {
@@ -128,7 +127,7 @@ namespace CompositionalPooling
             {
                 _PostMapUnits[i].Invoke(ref context);
             }
-
+            
             SceneManager.MoveGameObjectToScene(clone.gameObject, SceneManager.GetActiveScene()); // Move the clone to the active scene.
             clone.gameObject.SetActive(prototype.gameObject.activeSelf); // Map the active status of the root objects. At this point the clone and its entire hierarchy is in a valid state and it may be activated.
 
@@ -138,13 +137,11 @@ namespace CompositionalPooling
 
             static Transform Unpool(Transform prototype, Transform parentClone)
             {
-                Transform clone;
                 prototype.GetComposition(_ComponentBuffer1, _CompositionBuffer);
 
                 if (_PoolMap.TryGetValue(new PoolHandle(_CompositionBuffer), out PoolInfo pool) && pool.Instances.Count > 0) // If the pool exists and it's not empty
                 {
-                    clone = pool.Instances.Dequeue();
-                    clone.SetParent(parentClone, false);
+                    Transform clone = pool.Instances.Dequeue(); // Retrieve a pool instance.
 
                     #region Object-mapping
 
@@ -160,7 +157,7 @@ namespace CompositionalPooling
 
                     clone_obj.GetComponents(_ComponentBuffer2);
 
-                    for (int i = 0, len = _ComponentBuffer1.Count; i < len; i++) // Match and Map corresponding components.
+                    for (int i = 0, len = _ComponentBuffer1.Count; i < len; i++) // Map corresponding components.
                     {
                         DelegateManager.GetMapper(_CompositionBuffer[i]).Invoke(_ComponentBuffer1[i], _ComponentBuffer2[i], _PostMapUnits);
                     }
@@ -171,9 +168,14 @@ namespace CompositionalPooling
 						{
                             clone.hierarchyCapacity = prototype.hierarchyCapacity; // Map the hierarchy capacity of the objects. This optimizes hierarchy assembly.
                         }
+
+#if UNITY_EDITOR && DEBUG
+                        clone.parent = null; // Detach the object from the common root.
+#endif
                     }
 					else
 					{
+                        clone.SetParent(parentClone, false); // Set the parent of the clone.
                         clone_obj.SetActive(prototype_obj.activeSelf); // Map the active status of the objects.
 					}
 
@@ -183,14 +185,11 @@ namespace CompositionalPooling
                     {
                         Unpool(prototype.GetChild(i), clone);
                     }
-                }
-				else
-				{
-                    clone = UnityEngine.Object.Instantiate(prototype);
-                    clone.SetParent(parentClone, false);
+
+                    return clone;
                 }
 
-                return clone;
+                return UnityEngine.Object.Instantiate(prototype, parentClone, false);
             }
         }
     }

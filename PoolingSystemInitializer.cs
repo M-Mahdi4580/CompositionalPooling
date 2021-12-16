@@ -6,7 +6,7 @@ using UnityEngine;
 namespace CompositionalPooling.Controllers
 {
     /// <summary>
-    /// Performs pooling system's initializations.
+    /// Configures and initializes the system's pools.
     /// </summary>
     public sealed class PoolingSystemInitializer : MonoBehaviour
     {

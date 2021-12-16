@@ -19,7 +19,7 @@ namespace CompositionalPooling.Utility
         /// <param name="obj">The object to find.</param>
         /// <param name="index">The index to start searching from.</param>
         /// <param name="length">The number of indices to search.</param>
-        /// <returns>Index of the object if found, -1 otherwise.</returns>
+        /// <returns>Index of the object if found; -1 otherwise.</returns>
         /// <remarks>The equality comparison is performed soley based on reference equality.</remarks>
         public static int IndexOf<T, TList>(this TList list, T obj, int index, int length) where T : class where TList : IReadOnlyList<T>
         {
@@ -59,7 +59,7 @@ namespace CompositionalPooling.Utility
         /// <param name="obj">The object to serialize its hierarchy path.</param>
         /// <param name="result">The buffer to fill with path data.</param>
         /// <param name="root">The object the path should start from.</param>
-        /// <returns>True if the given root is valid, false otherwise.</returns>
+        /// <returns>True if the given root is valid; false otherwise.</returns>
         public static bool GetPath(this Transform obj, Stack<int> result, Transform root = null)
         {
             result.Clear(); // Clear the buffer before use.
@@ -96,7 +96,7 @@ namespace CompositionalPooling.Utility
         /// </summary>
         /// <param name="obj">The object to serialize.</param>
         /// <param name="context">Hierarchy context.</param>
-        /// <returns>The object itself if it is not part of the source hierarchy, the object with the same path in the target hierarchy otherwise.</returns>
+        /// <returns>The object itself if it is not part of the source hierarchy; the object with the same path in the target hierarchy otherwise.</returns>
         public static Transform GetCorresponding(this Transform obj, ref MappingContext context)
         {
             return 

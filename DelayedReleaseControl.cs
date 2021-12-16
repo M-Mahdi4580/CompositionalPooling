@@ -1,11 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
-using CompositionalPooling.Utility;
 
 
 namespace CompositionalPooling
 {
-    public static partial class PoolingSystem
+	public static partial class PoolingSystem
     {
         private static DelayedReleaseControl _delayedReleaser = null; // Holds the delayed release singleton.
         private static DelayedReleaseControl _DelayedReleaser // Returns the delayed release singleton or creates one if it doesn't exist.

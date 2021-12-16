@@ -55,14 +55,14 @@ namespace CompositionalPooling
         /// Determines whether the given type is associated with any mapper delegate.
         /// </summary>
         /// <param name="type">The type to check for.</param>
-        /// <returns>True if a mapper delegate is registered for the type, false otherwise.</returns>
+        /// <returns>True if a mapper delegate is registered for the type; false otherwise.</returns>
         public static bool IsRegistered(Type type) => _Mappers.ContainsKey(type);
 
         /// <summary>
         /// Finds the first type not associated with any mapper delegates in the given list.
         /// </summary>
         /// <param name="types">List of types.</param>
-        /// <returns>The unregistered type if any, null otherwise.</returns>
+        /// <returns>The unregistered type if any; null otherwise.</returns>
         public static Type FindUnregistered(IReadOnlyList<Type> types)
 		{
 			for (int i = 0; i < types.Count; i++)
