@@ -55,22 +55,24 @@ namespace CompositionalPooling
         /// </summary>
         private sealed class DelayedReleaseControl : MonoBehaviour
         {
-            private readonly DynamicArray<DelayedRelease> _PendingReleases = new DynamicArray<DelayedRelease>(); // The list of pending releases.
+            private readonly List<DelayedReleaseInfo> _PendingReleases = new List<DelayedReleaseInfo>(); // The list of pending releases.
 
             void LateUpdate()
             {
-                float deltaTime = Time.deltaTime;
+                float time = Time.time;
 
                 for (int i = _PendingReleases.Count - 1; i >= 0; i--)
                 {
-                    if ((_PendingReleases[i].delay -= deltaTime) <= 0f) // Update the timer and if it hits threshold
-                    {
-                        if (_PendingReleases[i].Instance) // If the object is not destroyed
-                        {
-                            ReleaseImmediate(_PendingReleases[i].Instance); // Release the object.
-                        }
+                    DelayedReleaseInfo releaseInfo = _PendingReleases[i];
 
+                    if (releaseInfo.Time >= time) // If the object's release time is reached
+                    {
                         _PendingReleases.RemoveAt(i); // Update the list.
+
+                        if (releaseInfo.Instance) // If the object is not destroyed
+                        {
+                            ReleaseImmediate(releaseInfo.Instance); // Release the object.
+                        }
                     }
                 }
 
@@ -80,10 +82,11 @@ namespace CompositionalPooling
                 }
             }
 
-            /// <inheritdoc cref="DelayedRelease(Transform, float)"/>
+            /// <param name="delay">Time delay before releasing the object.</param>
+            /// <inheritdoc cref="DelayedReleaseInfo(Transform, float)"/>
             public void Release(Transform instance, float delay)
             {
-                _PendingReleases.Add(new DelayedRelease(instance, delay));
+                _PendingReleases.Add(new DelayedReleaseInfo(instance, Time.time + delay));
                 enabled = true;
             }
 
@@ -91,7 +94,7 @@ namespace CompositionalPooling
             /// <summary>
             /// Holds a delayed release's parameters.
             /// </summary>
-            private struct DelayedRelease
+            private readonly struct DelayedReleaseInfo
             {
                 /// <summary>
                 /// The object to release.
@@ -99,17 +102,17 @@ namespace CompositionalPooling
                 public readonly Transform Instance;
 
                 /// <summary>
-                /// Time delay before the release.
+                /// Time at which to release the object
                 /// </summary>
-                public float delay;
+                public readonly float Time;
 
 
                 /// <param name="instance">The object to release.</param>
-                /// <param name="delay">Time delay before the release.</param>
-                public DelayedRelease(Transform instance, float delay)
+                /// <param name="time">The time at which to release the object.</param>
+                public DelayedReleaseInfo(Transform instance, float time)
                 {
                     Instance = instance;
-                    this.delay = delay;
+                    Time = time;
                 }
             }
 
